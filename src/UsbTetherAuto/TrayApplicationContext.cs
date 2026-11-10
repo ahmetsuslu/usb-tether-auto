@@ -91,8 +91,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
             _tray.Text = tip.Length > 62 ? tip[..62] : tip;
 
             _miStatus.Text = $"Durum: {e.Headline}";
-            _miEnable.Enabled = e.Status is TetherStatus.Connected or TetherStatus.Failed;
-            _miDisable.Enabled = e.Status == TetherStatus.Tethered;
+            _miEnable.Enabled = e.Status is TetherStatus.Connected or TetherStatus.Failed
+                                         or TetherStatus.NoCarrier;
+            _miDisable.Enabled = e.Status is TetherStatus.Tethered or TetherStatus.NoCarrier;
         }
 
         RunOnUi(Apply);

@@ -11,6 +11,7 @@ STATES = {
     'trayOff':      (0x6B, 0x72, 0x80, 255),   # gri  - cihaz yok
     'trayConnected':(0x25, 0x63, 0xEB, 255),   # mavi - bagli, tethering kapali
     'trayTethered': (0x16, 0xA3, 0x4A, 255),   # yesil- tethering acik
+    'trayWarn':     (0xD9, 0x77, 0x06, 255),   # amber - acik ama veri akmiyor
     'trayError':    (0xDC, 0x26, 0x26, 255),   # kirmizi - hata
     'usb':          (0x25, 0x63, 0xEB, 255),   # uygulama ikonu
 }

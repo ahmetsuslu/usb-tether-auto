@@ -18,6 +18,21 @@ internal enum DeviceState
 
 internal sealed record DeviceInfo(DeviceState State, string? Serial);
 
+/// <summary>
+/// Tethering arabiriminin gercek durumu. Arabirimin VAR OLMASI paylasimin
+/// calistigi anlamina gelmez: bir Android guncellemesinden sonra sahipsiz kalan
+/// arabirim IP bile alabilir, ama tasiyici (carrier) hic kalkmaz ve tek paket akmaz.
+/// </summary>
+internal enum TetherLink
+{
+    /// <summary>Tethering arabirimi yok.</summary>
+    Off,
+    /// <summary>Arabirim var ama tasiyici yok - veri akmiyor.</summary>
+    NoCarrier,
+    /// <summary>Arabirim ayakta ve tasiyici var - veri akiyor.</summary>
+    Up
+}
+
 /// <summary>Tethering'i acmak icin denenecek bir yontem.</summary>
 internal sealed record TetherMethod(string Name, string Description, string[] Args);
 
@@ -41,7 +56,10 @@ internal sealed partial class AdbService(Func<string?> adbPathProvider)
     [GeneratedRegex(@"mCurrentFunctions\s*[:=]\s*([^\r\n]*)", RegexOptions.IgnoreCase)]
     private static partial Regex CurrentFunctionsRegex();
 
-    [GeneratedRegex(@"\b(rndis0|ncm0|usb0)\b", RegexOptions.IgnoreCase)]
+    // "47: rndis0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 ..." satirindan
+    // arabirim adini ve bayraklarini birlikte yakalar.
+    [GeneratedRegex(@"^\s*\d+:\s*(rndis\d|ncm\d|usb\d):\s*<([^>]*)>",
+                    RegexOptions.IgnoreCase | RegexOptions.Multiline)]
     private static partial Regex TetherInterfaceRegex();
 
     // ---------------- adb.exe bulma ----------------
@@ -204,22 +222,31 @@ internal sealed partial class AdbService(Func<string?> adbPathProvider)
             : model;
     }
 
-    /// <summary>Tethering acik mi? Iki bagimsiz sinyale bakilir.</summary>
-    public async Task<bool> IsTetheredAsync(string? serial, CancellationToken token)
+    /// <summary>
+    /// Tethering arabiriminin gercek durumunu olcer.
+    ///
+    /// Yalnizca arabirimin varligina veya USB fonksiyonunun RNDIS olmasina bakmak
+    /// yaniltici: ikisi de dogruyken tasiyici kalkmayabilir ve hicbir veri akmaz.
+    /// Belirleyici sinyal arabirim bayraklarindaki LOWER_UP'tir.
+    /// </summary>
+    public async Task<TetherLink> GetLinkAsync(string? serial, CancellationToken token)
     {
-        var usb = await ShellAsync(serial, token, "shell", "dumpsys", "usb").ConfigureAwait(false);
-        var match = CurrentFunctionsRegex().Match(usb);
-        if (match.Success)
-        {
-            var functions = match.Groups[1].Value;
-            if (functions.Contains("rndis", StringComparison.OrdinalIgnoreCase) ||
-                functions.Contains("ncm", StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
         var links = await ShellAsync(serial, token, "shell", "ip", "-o", "link").ConfigureAwait(false);
-        return TetherInterfaceRegex().IsMatch(links);
+
+        var best = TetherLink.Off;
+        foreach (Match m in TetherInterfaceRegex().Matches(links))
+        {
+            // LOWER_UP = USB tasiyicisi var. UP tek basina yeterli degil.
+            if (m.Groups[2].Value.Contains("LOWER_UP", StringComparison.OrdinalIgnoreCase))
+                return TetherLink.Up;
+            best = TetherLink.NoCarrier;
+        }
+        return best;
     }
+
+    /// <summary>Yalnizca paylasim gercekten calisiyorsa true.</summary>
+    public async Task<bool> IsTetheredAsync(string? serial, CancellationToken token) =>
+        await GetLinkAsync(serial, token).ConfigureAwait(false) == TetherLink.Up;
 
     // ---------------- acma / kapama ----------------
 

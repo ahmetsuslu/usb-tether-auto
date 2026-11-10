@@ -8,6 +8,8 @@ internal enum TetherStatus
     Connected,
     Enabling,
     Tethered,
+    /// <summary>Arabirim ayakta ama tasiyici yok: paylasim acik gorunur, veri akmaz.</summary>
+    NoCarrier,
     Failed
 }
 
@@ -25,6 +27,7 @@ internal sealed class StatusEventArgs(TetherStatus status, string? deviceModel, 
         TetherStatus.Connected => "Bagli - tethering kapali",
         TetherStatus.Enabling => "Tethering aciliyor...",
         TetherStatus.Tethered => "Tethering acik",
+        TetherStatus.NoCarrier => "Acik gorunuyor ama veri akmiyor",
         TetherStatus.Failed => "Tethering acilamadi",
         _ => "Bilinmiyor"
     };
@@ -139,7 +142,9 @@ internal sealed class TetherWatcher(AdbService adb, AppSettings settings) : IDis
             Logger.Info($"Cihaz baglandi: {_model ?? "(model okunamadi)"} [{_serial}]");
         }
 
-        if (await adb.IsTetheredAsync(_serial, token).ConfigureAwait(false))
+        var link = await adb.GetLinkAsync(_serial, token).ConfigureAwait(false);
+
+        if (link == TetherLink.Up)
         {
             var wasOff = _status != TetherStatus.Tethered;
             _failures = 0;
@@ -147,6 +152,20 @@ internal sealed class TetherWatcher(AdbService adb, AppSettings settings) : IDis
             if (wasOff)
                 Raise(Notification, new NotifyEventArgs("USB Tether Auto",
                     $"{_model ?? "Telefon"} - internet paylasimi acik.", ToolTipIcon.Info));
+            return;
+        }
+
+        if (link == TetherLink.NoCarrier)
+        {
+            // Arabirim duruyor ama USB tasiyicisi kalkmamis. setFunctions'i tekrar
+            // denemek bu durumu duzeltmiyor; kullaniciya ne yapacagini soyluyoruz.
+            var wasOk = _status != TetherStatus.NoCarrier;
+            SetStatus(TetherStatus.NoCarrier,
+                "Telefonu yeniden baslatin: paylasim arabirimi takili kalmis olabilir.");
+            if (wasOk)
+                Raise(Notification, new NotifyEventArgs("USB Tether Auto",
+                    "Paylasim acik gorunuyor ama veri akmiyor. Telefonu yeniden baslatin.",
+                    ToolTipIcon.Warning));
             return;
         }
 

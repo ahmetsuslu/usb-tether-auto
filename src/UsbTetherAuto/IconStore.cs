@@ -14,6 +14,7 @@ internal static class IconStore
     {
         TetherStatus.Tethered => Get("trayTethered"),
         TetherStatus.Connected or TetherStatus.Enabling => Get("trayConnected"),
+        TetherStatus.NoCarrier => Get("trayWarn"),
         TetherStatus.Failed or TetherStatus.AdbMissing or TetherStatus.Unauthorized => Get("trayError"),
         _ => Get("trayOff")
     };
@@ -22,6 +23,7 @@ internal static class IconStore
     {
         TetherStatus.Tethered => Color.FromArgb(0x16, 0xA3, 0x4A),
         TetherStatus.Connected or TetherStatus.Enabling => Color.FromArgb(0x25, 0x63, 0xEB),
+        TetherStatus.NoCarrier => Color.FromArgb(0xD9, 0x77, 0x06),
         TetherStatus.Failed or TetherStatus.AdbMissing or TetherStatus.Unauthorized => Color.FromArgb(0xDC, 0x26, 0x26),
         _ => Color.FromArgb(0x6B, 0x72, 0x80)
     };

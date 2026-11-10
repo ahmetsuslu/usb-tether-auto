@@ -13,7 +13,8 @@ setFunctions` destekleyen diger Android cihazlarda da calismasi beklenir.
 |---|---|
 | Gri | Telefon bagli degil |
 | Mavi | Telefon bagli, tethering kapali (aciliyor) |
-| Yesil | Tethering acik |
+| Yesil | Tethering acik ve veri akiyor |
+| Amber | Arabirim var ama tasiyici yok - acik gorunuyor, veri akmiyor |
 | Kirmizi | adb yok / izin verilmedi / acilamadi |
 
 ## Neden bir uygulama degil de PC tarafinda?
@@ -163,6 +164,22 @@ Kalan secenekler:
   (`adb shell pm grant <paket> android.permission.WRITE_SECURE_SETTINGS`)
   ve "Power connected" tetigine tethering aksiyonunu baglamak.
 - Root varsa `root-rndis` yontemi zaten sirada.
+
+**Simge amber: "Acik gorunuyor ama veri akmiyor"** - Telefonu yeniden baslatin.
+Bu, pratikte gorulmus gercek bir ariza: bir Android surum yukseltmesinden sonra
+telefonda `usb0` adinda sahipsiz bir arabirim kalabiliyor. Android'in tethering
+yapilandirmasi USB arabirimlerini `[usb\d, rndis\d]` sirasiyla aradigi icin
+IP'yi ve DHCP sunucusunu o olu arabirime bagliyor; gercek gadget arabirimi
+(`rndis0`) ise `NO-CARRIER` durumunda bekliyor. Sonuc: telefon da PC de
+"bagli" der, Windows `169.254.x.x` (APIPA) alir, iki yonde de sifir paket akar.
+Telefonu yeniden baslatmak kalinti arabirimi siler ve paylasim duzgun arabirime
+baglanir. Sorunu teshis etmek icin:
+
+```bash
+adb shell ip -o link | findstr "rndis ncm usb"
+```
+
+`LOWER_UP` goruyorsaniz tasiyici vardir; `NO-CARRIER` goruyorsaniz yoktur.
 
 **Tethering acilirken kisa bir kopma oluyor** - Normaldir. `setFunctions`
 USB konfigurasyonunu degistirdigi icin adb baglantisi dusup geri gelir;

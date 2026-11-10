@@ -439,9 +439,10 @@ internal sealed class MainForm : Form
         if (e.Status == TetherStatus.Unauthorized) parts.Add("Telefondaki izin penceresini onaylayin.");
         _detail.Text = string.Join("  -  ", parts);
 
-        var deviceReady = e.Status is TetherStatus.Connected or TetherStatus.Tethered or TetherStatus.Failed;
+        var deviceReady = e.Status is TetherStatus.Connected or TetherStatus.Tethered
+                                   or TetherStatus.NoCarrier or TetherStatus.Failed;
         _btnEnable.Enabled = !_busy && deviceReady && e.Status != TetherStatus.Tethered;
-        _btnDisable.Enabled = !_busy && e.Status == TetherStatus.Tethered;
+        _btnDisable.Enabled = !_busy && e.Status is TetherStatus.Tethered or TetherStatus.NoCarrier;
         _btnRefresh.Enabled = !_busy;
     }
 

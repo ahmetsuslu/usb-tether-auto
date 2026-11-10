@@ -2,6 +2,24 @@
 
 Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kullanir.
 
+## [1.2.0] - 2026-11-10
+
+Tethering tespiti artik yalan soylemiyor.
+
+### Duzeltildi
+- **Yanlis "acik" bildirimi.** Uygulama paylasimin acik olup olmadigina
+  `rndis0`/`ncm0`/`usb0` arabiriminin yalnizca *var olmasina* bakarak karar
+  veriyordu. Bu yeterli degil: bir Android guncellemesinden sonra sahipsiz kalan
+  arabirim ayakta kalabiliyor, IP bile alabiliyor, ama USB tasiyicisi hic
+  kalkmadigi icin tek paket akmiyor. Uygulama bu durumda yesil yanip "Tethering
+  acik" diyordu. Artik belirleyici sinyal arabirim bayraklarindaki `LOWER_UP`.
+
+### Eklendi
+- **"Acik gorunuyor ama veri akmiyor" durumu** (amber simge). Arabirim var ama
+  tasiyici yoksa bu durum gosteriliyor ve "Telefonu yeniden baslatin" oneriliyor
+  - pratikte bu arizayi cozen sey bu. Uygulama bu durumda `setFunctions`'i
+  bosuna tekrar denemiyor.
+
 ## [1.1.0] - 2026-08-26
 
 Son kullaniciya yonelik surum: artik kurulum dosyasi var ve telefon hazirligi
